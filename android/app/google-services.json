@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "922008977707",
+    "project_id": "scihealth-b889b",
+    "storage_bucket": "scihealth-b889b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:922008977707:android:6637c9fcab883e54d4056e",
+        "android_client_info": {
+          "package_name": "com.scihealth"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdQHjNwhlDLoGo9ByOwARWpLJ3YNK4vHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

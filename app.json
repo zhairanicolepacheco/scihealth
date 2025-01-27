@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "SciHealth",
+    "slug": "SciHealth",
+    "version": "1.0.0",
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}
