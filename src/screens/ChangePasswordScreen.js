@@ -1,23 +1,80 @@
 import React, { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native"
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+} from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
+import auth from "@react-native-firebase/auth"
 
 export default function ChangePasswordScreen() {
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
   const navigation = useNavigation()
 
-  const handleChangePassword = () => {
-    // Implement password change logic here
-    if (newPassword === confirmPassword) {
-      console.log("Password changed successfully")
-      // In a real app, you would call an API to change the password here
-      navigation.goBack()
-    } else {
-      console.log("New passwords do not match")
-      // In a real app, you would show an error message to the user
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Error", "New passwords do not match")
+      return
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert("Error", "New password should be at least 6 characters long")
+      return
+    }
+
+    setLoading(true)
+    try {
+      const user = auth().currentUser
+      const credential = auth.EmailAuthProvider.credential(user.email, currentPassword)
+
+      // Reauthenticate user
+      await user.reauthenticateWithCredential(credential)
+
+      // Change password
+      await user.updatePassword(newPassword)
+
+      Alert.alert("Success", "Password changed successfully", [{ text: "OK", onPress: () => navigation.goBack() }])
+    } catch (error) {
+      let errorMessage = "An error occurred. Please try again."
+      switch (error.code) {
+        case "auth/wrong-password":
+          errorMessage = "The current password is incorrect."
+          break
+        case "auth/weak-password":
+          errorMessage = "The new password is too weak."
+          break
+        default:
+          console.error(error)
+      }
+      Alert.alert("Error", errorMessage)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const togglePasswordVisibility = (passwordField) => {
+    switch (passwordField) {
+      case "current":
+        setShowCurrentPassword(!showCurrentPassword)
+        break
+      case "new":
+        setShowNewPassword(!showNewPassword)
+        break
+      case "confirm":
+        setShowConfirmPassword(!showConfirmPassword)
+        break
     }
   }
 
@@ -41,8 +98,11 @@ export default function ChangePasswordScreen() {
               placeholder="Current Password"
               value={currentPassword}
               onChangeText={setCurrentPassword}
-              secureTextEntry
+              secureTextEntry={!showCurrentPassword}
             />
+            <TouchableOpacity onPress={() => togglePasswordVisibility("current")} style={styles.eyeIcon}>
+              <Icon name={showCurrentPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#196EB0" />
+            </TouchableOpacity>
           </View>
           <View style={styles.inputContainer}>
             <Icon name="lock-closed-outline" size={20} color="#196EB0" style={styles.inputIcon} />
@@ -51,8 +111,11 @@ export default function ChangePasswordScreen() {
               placeholder="New Password"
               value={newPassword}
               onChangeText={setNewPassword}
-              secureTextEntry
+              secureTextEntry={!showNewPassword}
             />
+            <TouchableOpacity onPress={() => togglePasswordVisibility("new")} style={styles.eyeIcon}>
+              <Icon name={showNewPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#196EB0" />
+            </TouchableOpacity>
           </View>
           <View style={styles.inputContainer}>
             <Icon name="lock-closed-outline" size={20} color="#196EB0" style={styles.inputIcon} />
@@ -61,11 +124,14 @@ export default function ChangePasswordScreen() {
               placeholder="Confirm New Password"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
+              secureTextEntry={!showConfirmPassword}
             />
+            <TouchableOpacity onPress={() => togglePasswordVisibility("confirm")} style={styles.eyeIcon}>
+              <Icon name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#196EB0" />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
-            <Text style={styles.buttonText}>Reset Password</Text>
+          <TouchableOpacity style={styles.button} onPress={handleChangePassword} disabled={loading}>
+            {loading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Reset Password</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -128,6 +194,9 @@ const styles = StyleSheet.create({
     height: "100%",
     paddingHorizontal: 10,
     fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 10,
   },
   button: {
     backgroundColor: "#196EB0",

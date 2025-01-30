@@ -1,30 +1,80 @@
-import React, { useState } from "react"
-import { View, Text, StyleSheet, SafeAreaView, Image, TouchableOpacity, ScrollView } from "react-native"
+import React, { useState, useEffect } from "react"
+import { View, Text, StyleSheet, SafeAreaView, Image, TouchableOpacity, ScrollView, Alert } from "react-native"
 import Icon from "react-native-vector-icons/Ionicons"
 import { useNavigation } from "@react-navigation/native"
+import auth from "@react-native-firebase/auth"
+import firestore from "@react-native-firebase/firestore"
 
 // Importing default profile pictures
 import defaultMale from "../assets/default-male.png"
 import defaultFemale from "../assets/default-female.png"
+import defaultProfile from "../assets/default-profile.png"
 
 export default function ProfileScreen() {
   const navigation = useNavigation()
-  const [profilePic, setProfilePic] = useState(defaultMale)
+  const [profilePic, setProfilePic] = useState(defaultProfile)
   const [userDetails, setUserDetails] = useState({
-    username: "JohnDoe",
-    gender: "Male",
-    dateOfBirth: "1990-01-01",
-    email: "johndoe@example.com",
+    username: "",
+    gender: "",
+    dateOfBirth: "",
+    email: "",
   })
+
+  useEffect(() => {
+    const user = auth().currentUser
+    if (user) {
+      setUserDetails((prevState) => ({ ...prevState, email: user.email }))
+      fetchUserDetails(user.uid)
+    }
+  }, [])
+
+  const fetchUserDetails = async (userId) => {
+    try {
+      const userDoc = await firestore().collection("users").doc(userId).get()
+      if (userDoc.exists) {
+        const userData = userDoc.data()
+        setUserDetails((prevState) => ({
+          ...prevState,
+          username: userData.username,
+          gender: userData.gender,
+          dateOfBirth: userData.dateOfBirth.toDate().toISOString().split("T")[0],
+        }))
+        setProfilePicBasedOnGender(userData.gender)
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error)
+      Alert.alert("Error", "Failed to load user details. Please try again.")
+    }
+  }
+
+  const setProfilePicBasedOnGender = (gender) => {
+    switch (gender.toLowerCase()) {
+      case "male":
+        setProfilePic(defaultMale)
+        break
+      case "female":
+        setProfilePic(defaultFemale)
+        break
+      default:
+        setProfilePic(defaultProfile)
+    }
+  }
 
   const handleChangePassword = () => {
     navigation.navigate("ChangePassword")
   }
 
-  const handleLogout = () => {
-    // Implement logout logic
-    console.log("Logout")
-    navigation.navigate("Welcome")
+  const handleLogout = async () => {
+    try {
+      await auth().signOut()
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Welcome" }],
+      })
+    } catch (error) {
+      console.error("Error during logout:", error)
+      Alert.alert("Error", "Failed to logout. Please try again.")
+    }
   }
 
   return (
@@ -36,20 +86,12 @@ export default function ProfileScreen() {
 
         <View style={styles.profilePicContainer}>
           <Image source={profilePic} style={styles.profilePic} />
-          <View style={styles.profilePicOptions}>
-            <TouchableOpacity onPress={() => setProfilePic(defaultMale)} style={styles.picOption}>
-              <Image source={defaultMale} style={styles.picOptionImage} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => setProfilePic(defaultFemale)} style={styles.picOption}>
-              <Image source={defaultFemale} style={styles.picOptionImage} />
-            </TouchableOpacity>
-          </View>
         </View>
 
         <View style={styles.detailsContainer}>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Username:</Text>
-            <Text style={styles.detailValue}>{userDetails.username}</Text>
+          <View style={styles.usernameRow}>
+            {/* <Text style={styles.detailLabel}>Username:</Text> */}
+            <Text style={styles.usernameValue}>{userDetails.username}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Gender:</Text>
@@ -124,6 +166,11 @@ const styles = StyleSheet.create({
   detailsContainer: {
     padding: 20,
   },
+  usernameRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
   detailRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -133,6 +180,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#196EB0",
+  },
+  usernameValue: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "black",
+    alignItems: "center",
   },
   detailValue: {
     fontSize: 16,

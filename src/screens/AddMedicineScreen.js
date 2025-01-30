@@ -7,15 +7,16 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  FlatList,
   ScrollView,
+  Alert,
 } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { Picker } from "@react-native-picker/picker"
+import { auth, firestore } from "../firebase/config"
 
-//medicine images
+// Import medicine images
 import vitamins from "../assets/medicine/vitamins.png"
 import syrup from "../assets/medicine/syrup.png"
 import tablets from "../assets/medicine/tablets.png"
@@ -103,25 +104,38 @@ export default function AddMedicineScreen() {
   const [frequency, setFrequency] = useState("everyday")
   const [selectedDays, setSelectedDays] = useState([true, true, true, true, true, true, true])
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 3) {
       setStep(step + 1)
     } else {
       // Handle medicine submission
-      const medicineData = {
-        name: medicineName,
-        pictureId: selectedPicture,
-        dosage,
-        strength,
-        condition,
-        startDate: startDate.toISOString(),
-        duration: `${duration} ${durationUnit}`,
-        alarms: alarms.map((alarm) => alarm.toISOString()),
-        frequency,
-        selectedDays,
+      const user = auth().currentUser
+      if (user) {
+        try {
+          const medicineData = {
+            userId: user.uid,
+            name: medicineName,
+            pictureId: selectedPicture,
+            dosage,
+            strength,
+            condition,
+            startDate: firestore.Timestamp.fromDate(startDate),
+            duration: `${duration} ${durationUnit}`,
+            alarms: alarms.map((alarm) => firestore.Timestamp.fromDate(alarm)),
+            frequency,
+            selectedDays,
+          }
+          await firestore().collection("medicines").add(medicineData)
+          console.log("Medicine added successfully")
+          // Navigate back to the previous screen
+          navigation.goBack()
+        } catch (error) {
+          console.error("Error adding medicine:", error)
+          Alert.alert("Error", "Failed to add medicine. Please try again.")
+        }
+      } else {
+        Alert.alert("Error", "You must be logged in to add a medicine.")
       }
-      console.log("Medicine added:", medicineData)
-      navigation.navigate("MedicineScreen", { newMedicine: medicineData })
     }
   }
 

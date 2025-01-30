@@ -1,15 +1,49 @@
 import React, { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native"
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+} from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
+import auth from "@react-native-firebase/auth"
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const navigation = useNavigation()
 
-  const handleResetPassword = () => {
-    // Implement password reset logic here
-    console.log("Reset password for:", email)
+  const handleResetPassword = async () => {
+    if (!email) {
+      Alert.alert("Error", "Please enter your email address.")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      await auth().sendPasswordResetEmail(email)
+      Alert.alert("Success", "Password reset email sent. Please check your inbox.", [
+        { text: "OK", onPress: () => navigation.navigate("Login") },
+      ])
+    } catch (error) {
+      let errorMessage = "An error occurred. Please try again."
+      switch (error.code) {
+        case "auth/invalid-email":
+          errorMessage = "The email address is invalid."
+          break
+        case "auth/user-not-found":
+          errorMessage = "There is no user corresponding to this email address."
+          break
+      }
+      Alert.alert("Error", errorMessage)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -36,17 +70,22 @@ export default function ForgotPasswordScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isLoading}
             />
           </View>
-          <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
-            <Text style={styles.buttonText}>Reset Password</Text>
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleResetPassword}
+            disabled={isLoading}
+          >
+            {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.buttonText}>Reset Password</Text>}
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate("Login")}>
             <Text style={styles.loginLinkText}>
               Remember Password? <Text style={styles.loginLinkTextBold}>Login</Text>
             </Text>
-          </TouchableOpacity>          
+          </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
@@ -117,6 +156,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 8,
     marginTop: 20,
+  },
+  buttonDisabled: {
+    backgroundColor: "#A0C4E4",
   },
   buttonText: {
     color: "#FFFFFF",

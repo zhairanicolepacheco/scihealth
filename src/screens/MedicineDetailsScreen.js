@@ -1,7 +1,43 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
+import { firestore } from "../firebase/config"
+
+// Import medicine images
+import vitamins from "../assets/medicine/vitamins.png"
+import syrup from "../assets/medicine/syrup.png"
+import tablets from "../assets/medicine/tablets.png"
+import supplement from "../assets/medicine/supplement.png"
+import pills from "../assets/medicine/pills.png"
+import pills2 from "../assets/medicine/pills-2.png"
+import patches from "../assets/medicine/patches.png"
+import ointment from "../assets/medicine/ointment.png"
+import injection from "../assets/medicine/injection.png"
+import inhaler from "../assets/medicine/inhaler.png"
+import foodSupplement from "../assets/medicine/food-supplement.png"
+import eyeDrops from "../assets/medicine/eye-drops.png"
+import drops from "../assets/medicine/drops.png"
+import capsule from "../assets/medicine/capsule.png"
+import capsule2 from "../assets/medicine/capsule-2.png"
+
+const medicinePictures = [
+  { id: "1", source: vitamins, name: "Vitamins" },
+  { id: "2", source: syrup, name: "Syrup" },
+  { id: "3", source: tablets, name: "Tablets" },
+  { id: "4", source: supplement, name: "Supplement" },
+  { id: "5", source: pills, name: "Pills" },
+  { id: "6", source: pills2, name: "Pills-2" },
+  { id: "7", source: patches, name: "Patches" },
+  { id: "8", source: ointment, name: "Ointment" },
+  { id: "9", source: injection, name: "Injection" },
+  { id: "10", source: inhaler, name: "Inhaler" },
+  { id: "11", source: foodSupplement, name: "Food Supplement" },
+  { id: "12", source: eyeDrops, name: "Eye Drops" },
+  { id: "13", source: drops, name: "Drops" },
+  { id: "14", source: capsule, name: "Capsule" },
+  { id: "15", source: capsule2, name: "Capsule-2" },
+]
 
 const DayCircle = ({ day, selected }) => (
   <View style={[styles.dayCircle, selected && styles.selectedDayCircle]}>
@@ -10,11 +46,37 @@ const DayCircle = ({ day, selected }) => (
 )
 
 const MedicineDetailsScreen = ({ route }) => {
-  const { medicine } = route.params
+  const { medicineId } = route.params
+  const [medicine, setMedicine] = useState(null)
   const navigation = useNavigation()
 
+  useEffect(() => {
+    const fetchMedicine = async () => {
+      try {
+        const medicineDoc = await firestore().collection("medicines").doc(medicineId).get()
+        if (medicineDoc.exists) {
+          const medicineData = medicineDoc.data()
+          const medicineImage = medicinePictures.find((pic) => pic.id === medicineData.pictureId)
+          setMedicine({
+            id: medicineDoc.id,
+            ...medicineData,
+            picture: medicineImage ? medicineImage.source : null,
+          })
+        } else {
+          Alert.alert("Error", "Medicine not found")
+          navigation.goBack()
+        }
+      } catch (error) {
+        console.error("Error fetching medicine:", error)
+        Alert.alert("Error", "Failed to load medicine details")
+      }
+    }
+
+    fetchMedicine()
+  }, [medicineId, navigation])
+
   const formatDate = (date) => {
-    if (!(date instanceof Date) || isNaN(date)) {
+    if (!date || !(date instanceof Date)) {
       return "Not set"
     }
     return date.toLocaleDateString("en-US", {
@@ -25,7 +87,7 @@ const MedicineDetailsScreen = ({ route }) => {
   }
 
   const formatTime = (date) => {
-    if (!(date instanceof Date) || isNaN(date)) {
+    if (!date || !(date instanceof Date)) {
       return "Not set"
     }
     return date.toLocaleTimeString("en-US", {
@@ -50,13 +112,26 @@ const MedicineDetailsScreen = ({ route }) => {
       },
       {
         text: "Delete",
-        onPress: () => {
-          // TODO: Implement delete functionality
-          navigation.goBack()
+        onPress: async () => {
+          try {
+            await firestore().collection("medicines").doc(medicineId).delete()
+            navigation.goBack()
+          } catch (error) {
+            console.error("Error deleting medicine:", error)
+            Alert.alert("Error", "Failed to delete medicine")
+          }
         },
         style: "destructive",
       },
     ])
+  }
+
+  if (!medicine) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    )
   }
 
   return (
@@ -71,7 +146,7 @@ const MedicineDetailsScreen = ({ route }) => {
         </TouchableOpacity>
       </View>
       <ScrollView contentContainerStyle={styles.content}>
-        <Image source={medicine.picture} style={styles.medicineImage} />
+        {medicine.picture && <Image source={medicine.picture} style={styles.medicineImage} />}
         <Text style={styles.medicineName}>{medicine.name || "Unknown Medicine"}</Text>
         <View style={styles.card}>
           <Text style={styles.detailLabel}>Frequency:</Text>
@@ -102,7 +177,7 @@ const MedicineDetailsScreen = ({ route }) => {
         <View style={styles.card}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Start Date:</Text>
-            <Text style={styles.detailValue}>{formatDate(medicine.startDate)}</Text>
+            <Text style={styles.detailValue}>{formatDate(medicine.startDate?.toDate())}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Duration:</Text>
@@ -110,7 +185,7 @@ const MedicineDetailsScreen = ({ route }) => {
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Reminder Time:</Text>
-            <Text style={styles.detailValue}>{formatTime(medicine.alarmTime)}</Text>
+            <Text style={styles.detailValue}>{formatTime(medicine.alarms?.[0]?.toDate())}</Text>
           </View>
         </View>
       </ScrollView>
