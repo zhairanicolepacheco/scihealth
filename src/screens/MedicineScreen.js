@@ -1,80 +1,74 @@
 import React, { useState, useEffect } from "react"
 import { View, Text, StyleSheet, SafeAreaView, TextInput, FlatList, TouchableOpacity, Image } from "react-native"
-import { useNavigation, useRoute } from "@react-navigation/native"
+import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
+import { auth, firestore } from "../firebase/config"
 
 // Import medicine images
 import vitamins from "../assets/medicine/vitamins.png"
 import syrup from "../assets/medicine/syrup.png"
-// Import the rest of your medicine images here...
+import tablets from "../assets/medicine/tablets.png"
+import supplement from "../assets/medicine/supplement.png"
+import pills from "../assets/medicine/pills.png"
+import pills2 from "../assets/medicine/pills-2.png"
+import patches from "../assets/medicine/patches.png"
+import ointment from "../assets/medicine/ointment.png"
+import injection from "../assets/medicine/injection.png"
+import inhaler from "../assets/medicine/inhaler.png"
+import foodSupplement from "../assets/medicine/food-supplement.png"
+import eyeDrops from "../assets/medicine/eye-drops.png"
+import drops from "../assets/medicine/drops.png"
+import capsule from "../assets/medicine/capsule.png"
+import capsule2 from "../assets/medicine/capsule-2.png"
 
 const medicinePictures = [
   { id: "1", source: vitamins, name: "Vitamins" },
   { id: "2", source: syrup, name: "Syrup" },
-  // Add the rest of your medicine images here...
-]
-
-// This is a mock data array. In a real app, this would come from a backend or local storage.
-const initialMedicines = [
-  {
-    id: "1",
-    name: "Aspirin",
-    dosage: "500mg",
-    frequency: "Twice daily",
-    picture: vitamins,
-    strength: "500mg",
-    condition: "After meal",
-    startDate: new Date("2023-05-01"),
-    duration: "30 days",
-    alarmTime: new Date("2023-05-01T09:00:00"),
-    selectedDays: [true, true, true, true, true, true, true],
-  },
-  {
-    id: "2",
-    name: "Ibuprofen",
-    dosage: "400mg",
-    frequency: "As needed",
-    picture: syrup,
-    strength: "400mg",
-    condition: "With food",
-    startDate: new Date("2023-05-02"),
-    duration: "As needed",
-    alarmTime: new Date("2023-05-02T14:00:00"),
-    selectedDays: [true, false, true, false, true, false, false],
-  },
-  // Add more mock data here...
+  { id: "3", source: tablets, name: "Tablets" },
+  { id: "4", source: supplement, name: "Supplement" },
+  { id: "5", source: pills, name: "Pills" },
+  { id: "6", source: pills2, name: "Pills-2" },
+  { id: "7", source: patches, name: "Patches" },
+  { id: "8", source: ointment, name: "Ointment" },
+  { id: "9", source: injection, name: "Injection" },
+  { id: "10", source: inhaler, name: "Inhaler" },
+  { id: "11", source: foodSupplement, name: "Food Supplement" },
+  { id: "12", source: eyeDrops, name: "Eye Drops" },
+  { id: "13", source: drops, name: "Drops" },
+  { id: "14", source: capsule, name: "Capsule" },
+  { id: "15", source: capsule2, name: "Capsule-2" },
 ]
 
 export default function MedicineScreen() {
-  const [medicines, setMedicines] = useState(initialMedicines)
+  const [medicines, setMedicines] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const navigation = useNavigation()
-  const route = useRoute()
 
-  useEffect(() => {
-    if (route.params?.newMedicine) {
-      const newMedicine = {
-        ...route.params.newMedicine,
-        id: (medicines.length + 1).toString(),
-        picture: medicinePictures.find((pic) => pic.id === route.params.newMedicine.pictureId)?.source,
-        startDate: new Date(route.params.newMedicine.startDate),
-        alarmTime: new Date(route.params.newMedicine.alarms[0]),
+  useFocusEffect(
+    React.useCallback(() => {
+      const user = auth().currentUser
+      if (user) {
+        const unsubscribe = firestore()
+          .collection("medicines")
+          .where("userId", "==", user.uid)
+          .onSnapshot((querySnapshot) => {
+            const medicinesList = querySnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+              picture: medicinePictures.find((pic) => pic.id === doc.data().pictureId)?.source,
+              startDate: doc.data().startDate.toDate(),
+              alarmTime: doc.data().alarms[0].toDate(),
+            }))
+            setMedicines(medicinesList)
+          })
+
+        return () => unsubscribe()
       }
-      setMedicines((prevMedicines) => [...prevMedicines, newMedicine])
-      navigation.setParams({ newMedicine: undefined })
-    }
-  }, [route.params?.newMedicine])
+    }, []),
+  )
 
   const handleSearch = (query) => {
     setSearchQuery(query)
-    if (query.trim() === "") {
-      setMedicines(initialMedicines)
-    } else {
-      const filteredMedicines = initialMedicines.filter((medicine) =>
-        medicine.name.toLowerCase().includes(query.toLowerCase()),
-      )
-      setMedicines(filteredMedicines)
-    }
   }
 
   const handleAddMedicine = () => {
@@ -82,7 +76,7 @@ export default function MedicineScreen() {
   }
 
   const handleMedicinePress = (medicine) => {
-    navigation.navigate("MedicineDetails", { medicine })
+    navigation.navigate("MedicineDetails", { medicineId: medicine.id })
   }
 
   const renderMedicineItem = ({ item }) => (
@@ -95,6 +89,10 @@ export default function MedicineScreen() {
         </Text>
       </View>
     </TouchableOpacity>
+  )
+
+  const filteredMedicines = medicines.filter((medicine) =>
+    medicine.name.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   return (
@@ -120,15 +118,15 @@ export default function MedicineScreen() {
         </View>
       </View>
       <FlatList
-        data={medicines}
+        data={filteredMedicines}
         renderItem={renderMedicineItem}
         keyExtractor={(item) => item.id}
         style={styles.list}
         contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -151,8 +149,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     padding: 16,
-    // borderBottomWidth: 1,
-    // borderBottomColor: "#E0E0E0",
   },
   headerText: {
     fontSize: 24,
@@ -176,8 +172,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F1F1F1",
     borderRadius: 5,
-    // borderWidth: 1,
-    // borderColor: "#E8ECF4",
     padding: 8,
   },
   searchIcon: {
@@ -201,8 +195,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
-    // borderWidth: 1,
-    // borderColor: "#E8ECF4",
   },
   medicineImage: {
     width: 60,
@@ -223,5 +215,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
   },
-});
+})
 

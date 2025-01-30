@@ -19,7 +19,7 @@ export default function TabNavigator() {
           if (route.name === "Home") {
             iconName = focused ? "home" : "home-outline"
           } else if (route.name === "Medicine") {
-            iconName = focused ? "medical" : "medical-outline"
+            iconName = focused ? "medkit" : "medkit-outline"
           } else if (route.name === "Profile") {
             iconName = focused ? "person" : "person-outline"
           }

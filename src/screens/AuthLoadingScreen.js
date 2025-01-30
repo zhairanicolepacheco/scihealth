@@ -2,20 +2,30 @@ import React, { useEffect } from "react"
 import { View, ActivityIndicator, StyleSheet } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import auth from "@react-native-firebase/auth"
+import SplashScreen from "react-native-splash-screen"
 
 export default function AuthLoadingScreen() {
   const navigation = useNavigation()
 
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged((user) => {
+    const checkAuthState = async () => {
+      const user = auth().currentUser
       if (user && user.emailVerified) {
-        // User is signed in and email is verified, navigate to MainApp
-        navigation.replace("MainApp")
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        })
       } else {
-        // User is signed out or email is not verified, navigate to Welcome screen
-        navigation.replace("Welcome")
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "Welcome" }],
+        })
       }
-    })
+      // Hide the splash screen once navigation is complete
+      SplashScreen.hide()
+    }
+
+    const unsubscribe = auth().onAuthStateChanged(checkAuthState)
 
     // Cleanup subscription on unmount
     return () => unsubscribe()

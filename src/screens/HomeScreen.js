@@ -1,37 +1,81 @@
-import React, { useState } from "react"
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, StatusBar, FlatList } from "react-native"
+import React, { useState, useEffect } from "react"
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, StatusBar, FlatList, TouchableOpacity } from "react-native"
 import { Calendar } from "react-native-calendars"
 import Icon from "react-native-vector-icons/Ionicons"
-
-// Mock data for medicines
-const medicineData = {
-  "2023-05-20": [
-    { id: "1", name: "Aspirin", dosage: "500mg", time: "08:00 AM" },
-    { id: "2", name: "Ibuprofen", dosage: "400mg", time: "02:00 PM" },
-  ],
-  "2023-05-21": [
-    { id: "3", name: "Paracetamol", dosage: "1000mg", time: "10:00 AM" },
-    { id: "4", name: "Amoxicillin", dosage: "250mg", time: "06:00 PM" },
-  ],
-}
+import { auth, firestore } from "../firebase/config"
 
 export default function HomeScreen() {
   const [selected, setSelected] = useState("")
-  const [medicines, setMedicines] = useState([])
+  const [medicines, setMedicines] = useState({})
+  const [markedDates, setMarkedDates] = useState({})
+
+  useEffect(() => {
+    const user = auth().currentUser
+    if (user) {
+      const unsubscribe = firestore()
+        .collection("medicines")
+        .where("userId", "==", user.uid)
+        .onSnapshot((querySnapshot) => {
+          const medicineData = {}
+          const newMarkedDates = {}
+
+          querySnapshot.forEach((doc) => {
+            const medicine = doc.data()
+            const startDate = medicine.startDate.toDate()
+            const endDate = new Date(startDate)
+
+            if (medicine.duration.includes("week")) {
+              const weeks = Number.parseInt(medicine.duration)
+              endDate.setDate(endDate.getDate() + weeks * 7)
+            } else {
+              endDate.setDate(endDate.getDate() + Number.parseInt(medicine.duration))
+            }
+
+            const currentDate = new Date(startDate)
+            while (currentDate <= endDate) {
+              const dateString = currentDate.toISOString().split("T")[0]
+              const isDaily = medicine.selectedDays.every((day) => day === true)
+
+              if (isDaily || medicine.selectedDays[currentDate.getDay()]) {
+                if (!medicineData[dateString]) {
+                  medicineData[dateString] = []
+                }
+                medicineData[dateString].push({
+                  id: doc.id,
+                  name: medicine.name,
+                  dosage: medicine.dosage,
+                  time: medicine.alarms[0].toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                  condition: medicine.condition,
+                })
+                newMarkedDates[dateString] = { marked: true, dotColor: "#196EB0" }
+              }
+              currentDate.setDate(currentDate.getDate() + 1)
+            }
+          })
+
+          setMedicines(medicineData)
+          setMarkedDates(newMarkedDates)
+        })
+
+      return () => unsubscribe()
+    }
+  }, [])
 
   const onDayPress = (day) => {
     setSelected(day.dateString)
-    setMedicines(medicineData[day.dateString] || [])
   }
 
   const renderMedicineItem = ({ item }) => (
-    <View style={styles.medicineItem}>
-      <Icon name="medical-outline" size={24} color="#196EB0" style={styles.medicineIcon} />
-      <View style={styles.medicineDetails}>
-        <Text style={styles.medicineName}>{item.name}</Text>
-        <Text style={styles.medicineInfo}>
-          {item.dosage} - {item.time}
-        </Text>
+    <View style={styles.medicineItemContainer}>
+      <View style={styles.medicineItem}>
+        <Icon name="medical-outline" size={24} color="#196EB0" style={styles.medicineIcon} />
+        <View style={styles.medicineDetails}>
+          <Text style={styles.medicineName}>{item.name}</Text>
+          <Text style={styles.medicineInfo}>
+            {item.dosage} - {item.time}
+          </Text>
+          {item.condition && <Text style={styles.medicineCondition}>{item.condition}</Text>}
+        </View>
       </View>
     </View>
   )
@@ -40,14 +84,12 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          {/* <Text style={styles.title}>Home</Text>
-          <Text style={styles.subtitle}>Welcome to SciHealth</Text> */}
           <View style={styles.calendarContainer}>
-            {/* <Text style={styles.calendarTitle}>Your Schedule</Text> */}
             <Calendar
               onDayPress={onDayPress}
               markedDates={{
-                [selected]: { selected: true, selectedColor: "#196EB0" },
+                ...markedDates,
+                [selected]: { ...markedDates[selected], selected: true, selectedColor: "#196EB0" },
               }}
               theme={{
                 calendarBackground: "#ffffff",
@@ -68,9 +110,9 @@ export default function HomeScreen() {
           {selected && (
             <View style={styles.medicineContainer}>
               <Text style={styles.medicineTitle}>Medicines for {selected}</Text>
-              {medicines.length > 0 ? (
+              {medicines[selected] && medicines[selected].length > 0 ? (
                 <FlatList
-                  data={medicines}
+                  data={medicines[selected]}
                   renderItem={renderMedicineItem}
                   keyExtractor={(item) => item.id}
                   style={styles.medicineList}
@@ -99,41 +141,32 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#196EB0",
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "#333",
-    marginBottom: 20,
-  },
   calendarContainer: {
     backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 15,
     marginBottom: 20,
-    shadowColor: "#000", // Shadow color
+    shadowColor: "#000",
     shadowOffset: {
-      width: 5, // Horizontal shadow offset
-      height: 5, // Vertical shadow offset
+      width: 5,
+      height: 5,
     },
-    shadowOpacity: 0.9, // Shadow opacity
-    shadowRadius: 6, // Shadow blur radius
-    elevation: 5, // Android-specific shadow
-  },  
-  calendarTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#196EB0",
-    marginBottom: 10,
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 5,
   },
   medicineContainer: {
     backgroundColor: "#FFF",
     borderRadius: 10,
     padding: 15,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   medicineTitle: {
     fontSize: 18,
@@ -142,18 +175,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   medicineList: {
-    maxHeight: 200,
+    maxHeight: 300,
+  },
+  medicineItemContainer: {
+    marginBottom: 10,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: "#F0F4F8",
   },
   medicineItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 5,
+    padding: 15,
   },
   medicineIcon: {
-    marginRight: 10,
+    marginRight: 15,
   },
   medicineDetails: {
     flex: 1,
@@ -162,10 +198,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#333",
+    marginBottom: 4,
   },
   medicineInfo: {
     fontSize: 14,
     color: "#666",
+    marginBottom: 2,
+  },
+  medicineCondition: {
+    fontSize: 14,
+    color: "#196EB0",
+    fontStyle: "italic",
   },
   noMedicineText: {
     fontSize: 16,

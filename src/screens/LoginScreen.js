@@ -16,6 +16,7 @@ import { auth } from "../firebase/config"
 export default function LoginScreen() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const navigation = useNavigation()
 
@@ -52,7 +53,10 @@ export default function LoginScreen() {
         )
       } else {
         console.log("Login successful")
-        // The AuthLoadingScreen will handle navigation to MainApp
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "MainApp" }],
+        })
       }
     } catch (error) {
       console.error(error)
@@ -60,6 +64,10 @@ export default function LoginScreen() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword)
   }
 
   return (
@@ -93,8 +101,11 @@ export default function LoginScreen() {
               placeholder="Password"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
             />
+            <TouchableOpacity onPress={togglePasswordVisibility} style={styles.eyeIcon}>
+              <Icon name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#196EB0" />
+            </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.forgotPassword} onPress={() => navigation.navigate("ForgotPassword")}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
@@ -164,6 +175,9 @@ const styles = StyleSheet.create({
     height: "100%",
     paddingHorizontal: 10,
     fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 10,
   },
   forgotPassword: {
     alignSelf: "flex-end",
