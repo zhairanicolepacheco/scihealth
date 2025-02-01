@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
 import { firestore } from "../firebase/config"
+import { cancelNotification } from "../utils/notificationHandler"
 
 // Import medicine images
 import vitamins from "../assets/medicine/vitamins.png"
@@ -114,6 +115,10 @@ const MedicineDetailsScreen = ({ route }) => {
         text: "Delete",
         onPress: async () => {
           try {
+            // Cancel the notification
+            cancelNotification(medicineId)
+
+            // Delete the medicine from Firestore
             await firestore().collection("medicines").doc(medicineId).delete()
             navigation.goBack()
           } catch (error) {

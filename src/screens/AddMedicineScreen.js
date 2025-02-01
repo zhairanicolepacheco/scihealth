@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import { useState } from "react"
 import {
   View,
   Text,
@@ -15,6 +15,8 @@ import Icon from "react-native-vector-icons/Ionicons"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import { Picker } from "@react-native-picker/picker"
 import { auth, firestore } from "../firebase/config"
+import { scheduleNotification } from "../utils/notificationHandler"
+import PushNotification from "react-native-push-notification"
 
 // Import medicine images
 import vitamins from "../assets/medicine/vitamins.png"
@@ -108,7 +110,6 @@ export default function AddMedicineScreen() {
     if (step < 3) {
       setStep(step + 1)
     } else {
-      // Handle medicine submission
       const user = auth().currentUser
       if (user) {
         try {
@@ -125,8 +126,14 @@ export default function AddMedicineScreen() {
             frequency,
             selectedDays,
           }
-          await firestore().collection("medicines").add(medicineData)
+          const medicineDoc = await firestore().collection("medicines").add(medicineData)
           console.log("Medicine added successfully")
+
+          // Schedule notifications for each alarm
+          medicineData.alarms.forEach((alarm) => {
+            scheduleNotification(medicineDoc.id, medicineData.name, alarm.toDate())
+          })
+
           // Navigate back to the previous screen
           navigation.goBack()
         } catch (error) {
@@ -209,6 +216,16 @@ export default function AddMedicineScreen() {
   const removeAlarm = (index) => {
     const newAlarms = alarms.filter((_, i) => i !== index)
     setAlarms(newAlarms)
+  }
+
+  const testNotification = () => {
+    PushNotification.localNotification({
+      channelId: "medication-reminders",
+      title: "Test Notification",
+      message: "This is a test medication reminder",
+      playSound: true,
+      soundName: "alarm.mp3",
+    })
   }
 
   return (
@@ -343,6 +360,10 @@ export default function AddMedicineScreen() {
         )}
         <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
           <Text style={styles.nextButtonText}>{step === 3 ? "Add Medicine" : "Next"}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.testButton} onPress={testNotification}>
+          <Text style={styles.testButtonText}>Test Notification</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -551,6 +572,18 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     justifyContent: "space-between",
     marginBottom: 16,
+  },
+  testButton: {
+    backgroundColor: "#4CAF50",
+    padding: 16,
+    borderRadius: 5,
+    alignItems: "center",
+    marginTop: 20,
+  },
+  testButtonText: {
+    color: "#FFFFFF",
+    fontSize: 18,
+    fontWeight: "bold",
   },
 })
 

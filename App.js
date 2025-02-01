@@ -1,4 +1,4 @@
-import React from "react"
+import { useEffect } from "react"
 import { NavigationContainer } from "@react-navigation/native"
 import { createNativeStackNavigator } from "@react-navigation/native-stack"
 import AuthLoadingScreen from "./src/screens/AuthLoadingScreen"
@@ -11,6 +11,7 @@ import AddMedicineScreen from "./src/screens/AddMedicineScreen"
 import MedicineDetailsScreen from "./src/screens/MedicineDetailsScreen"
 import TabNavigator from "./src/navigation/TabNavigator"
 import "./src/firebase/config"
+import { configurePushNotifications, checkScheduledNotifications } from "./src/utils/notificationHandler"
 
 const Stack = createNativeStackNavigator()
 
@@ -37,6 +38,11 @@ const linking = {
 }
 
 export default function App() {
+  useEffect(() => {
+    configurePushNotifications()
+    checkScheduledNotifications() // This will log scheduled notifications for debugging
+  }, [])
+
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator initialRouteName="AuthLoading" screenOptions={{ headerShown: false }}>
