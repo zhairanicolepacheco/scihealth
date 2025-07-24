@@ -111,9 +111,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.scihealth"
+    namespace "com.admin_aira.SciHealth"
     defaultConfig {
-        applicationId "com.scihealth"
+        applicationId "com.admin_aira.SciHealth"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -172,6 +172,19 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation project(':react-native-splash-screen')
+
+    implementation project(':react-native-community_datetimepicker')
+    implementation project(':react-native-firebase_app')
+    implementation project(':react-native-firebase_auth')
+    implementation project(':react-native-firebase_firestore')
+    implementation project(':react-native-reanimated')
+    implementation project(':react-native-async-storage_async-storage')
+    implementation project(':react-native-gesture-handler')
+    implementation project(':react-native-screens')
+    implementation project(':react-native-vector-icons')
+    implementation project(':react-native-masked-view_masked-view')
+    implementation project(':react-native-picker_picker')
+    implementation project(':react-native-safe-area-context')
     
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

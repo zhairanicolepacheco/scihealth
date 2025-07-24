@@ -1,43 +1,12 @@
+"use client"
+
 import React, { useState, useEffect } from "react"
 import { View, Text, StyleSheet, SafeAreaView, TextInput, FlatList, TouchableOpacity, Image } from "react-native"
 import { useNavigation, useFocusEffect } from "@react-navigation/native"
 import Icon from "react-native-vector-icons/Ionicons"
 import { auth, firestore } from "../firebase/config"
-
-// Import medicine images
-import vitamins from "../assets/medicine/vitamins.png"
-import syrup from "../assets/medicine/syrup.png"
-import tablets from "../assets/medicine/tablets.png"
-import supplement from "../assets/medicine/supplement.png"
-import pills from "../assets/medicine/pills.png"
-import pills2 from "../assets/medicine/pills-2.png"
-import patches from "../assets/medicine/patches.png"
-import ointment from "../assets/medicine/ointment.png"
-import injection from "../assets/medicine/injection.png"
-import inhaler from "../assets/medicine/inhaler.png"
-import foodSupplement from "../assets/medicine/food-supplement.png"
-import eyeDrops from "../assets/medicine/eye-drops.png"
-import drops from "../assets/medicine/drops.png"
-import capsule from "../assets/medicine/capsule.png"
-import capsule2 from "../assets/medicine/capsule-2.png"
-
-const medicinePictures = [
-  { id: "1", source: vitamins, name: "Vitamins" },
-  { id: "2", source: syrup, name: "Syrup" },
-  { id: "3", source: tablets, name: "Tablets" },
-  { id: "4", source: supplement, name: "Supplement" },
-  { id: "5", source: pills, name: "Pills" },
-  { id: "6", source: pills2, name: "Pills-2" },
-  { id: "7", source: patches, name: "Patches" },
-  { id: "8", source: ointment, name: "Ointment" },
-  { id: "9", source: injection, name: "Injection" },
-  { id: "10", source: inhaler, name: "Inhaler" },
-  { id: "11", source: foodSupplement, name: "Food Supplement" },
-  { id: "12", source: eyeDrops, name: "Eye Drops" },
-  { id: "13", source: drops, name: "Drops" },
-  { id: "14", source: capsule, name: "Capsule" },
-  { id: "15", source: capsule2, name: "Capsule-2" },
-]
+import { medicinePictures } from "../components/constants"
+import { COLORS } from "../components/styles"
 
 export default function MedicineScreen() {
   const [medicines, setMedicines] = useState([])
@@ -83,10 +52,10 @@ export default function MedicineScreen() {
     <TouchableOpacity style={styles.medicineItem} onPress={() => handleMedicinePress(item)}>
       <Image source={item.picture} style={styles.medicineImage} />
       <View style={styles.medicineInfo}>
-        <Text style={styles.medicineName}>{item.name}</Text>
-        <Text style={styles.medicineDetails}>
+        <Text style={[styles.medicineName, { textTransform: 'capitalize' }]}>{item.name}</Text>
+        {/* <Text style={styles.medicineDetails}>
           {item.dosage} - {item.frequency}
-        </Text>
+        </Text> */}
       </View>
     </TouchableOpacity>
   )
@@ -97,26 +66,20 @@ export default function MedicineScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.mainHeader}>
-        <Text style={styles.mainHeaderText}>SciHealth</Text>
-      </View>
       <View style={styles.header}>
-        <Text style={styles.headerText}>My Medicines</Text>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddMedicine}>
-          <Icon name="add" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Icon name="search-outline" size={20} color="#196EB0" style={styles.searchIcon} />
+        <Text style={styles.headerTitle}>My Medicines</Text>
+        <View style={styles.searchContainer}>
+          <Icon name="search-outline" size={20} color="#666" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search medicines..."
+            placeholderTextColor="#666"
             value={searchQuery}
             onChangeText={handleSearch}
           />
         </View>
       </View>
+
       <FlatList
         data={filteredMedicines}
         renderItem={renderMedicineItem}
@@ -124,6 +87,10 @@ export default function MedicineScreen() {
         style={styles.list}
         contentContainerStyle={styles.listContent}
       />
+
+      <TouchableOpacity style={styles.fab} onPress={handleAddMedicine}>
+        <Icon name="add" size={24} color="#FFF" />
+      </TouchableOpacity>
     </SafeAreaView>
   )
 }
@@ -131,56 +98,54 @@ export default function MedicineScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F5F5F5",
   },
-  mainHeader: {
+  header: {
     padding: 16,
+    backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E0E0E0",
   },
-  mainHeaderText: {
-    fontSize: 20,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: "bold",
     color: "#196EB0",
-    textAlign: "center",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: 16,
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  addButton: {
-    backgroundColor: "#196EB0",
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+    marginBottom: 16,
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    marginTop: 8,
-  },
-  searchInputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F1F1F1",
-    borderRadius: 5,
-    padding: 8,
+    backgroundColor: "#F5F5F5",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
   },
   searchIcon: {
-    padding: 8,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    paddingHorizontal: 10,
+    fontSize: 16,
+    color: "#333",
+  },
+  fab: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#196EB0",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   list: {
     flex: 1,
@@ -191,14 +156,22 @@ const styles = StyleSheet.create({
   medicineItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#E8ECF4",
+    backgroundColor: COLORS.white,
     borderRadius: 8,
     padding: 16,
     marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
   },
   medicineImage: {
-    width: 60,
-    height: 60,
+    width: 40,
+    height: 40,
     borderRadius: 8,
     marginRight: 16,
   },
@@ -206,7 +179,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   medicineName: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#196EB0",
     marginBottom: 4,
@@ -216,4 +189,3 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 })
-

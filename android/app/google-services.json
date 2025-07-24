@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:922008977707:android:6637c9fcab883e54d4056e",
+        "mobilesdk_app_id": "1:922008977707:android:72a27898ee9666a3d4056e",
         "android_client_info": {
-          "package_name": "com.scihealth"
+          "package_name": "com.admin_aira.SciHealth"
         }
       },
       "oauth_client": [],

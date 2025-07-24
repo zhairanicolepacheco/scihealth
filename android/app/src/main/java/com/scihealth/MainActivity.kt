@@ -1,4 +1,4 @@
-package com.scihealth
+package com.admin_aira.SciHealth
 
 import android.os.Build
 import android.os.Bundle

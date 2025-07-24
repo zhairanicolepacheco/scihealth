@@ -1,19 +1,88 @@
-import React, { useState, useEffect } from "react"
-import { View, Text, StyleSheet, SafeAreaView, Image, TouchableOpacity, ScrollView, Alert } from "react-native"
-import Icon from "react-native-vector-icons/Ionicons"
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  Image,
+  ScrollView,
+  Alert,
+  StatusBar,
+  TouchableOpacity,
+} from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import auth from "@react-native-firebase/auth"
 import firestore from "@react-native-firebase/firestore"
+import Icon from "react-native-vector-icons/Ionicons"
+import { formatDate } from "../components/functions"
 
-// Importing default profile pictures
 import defaultMale from "../assets/default-male.png"
 import defaultFemale from "../assets/default-female.png"
 import defaultProfile from "../assets/default-profile.png"
+
+const COLORS = {
+  primary: "#2563eb",
+  white: "#FFFFFF",
+  black: "#1A1A1A",
+  danger: "#ef4444",
+  text: {
+    primary: "#1A1A1A",
+    secondary: "#71757B",
+  },
+  background: {
+    blue: "#2563eb",
+  },
+  border: {
+    light: "#E5E7EB",
+  },
+}
+
+const MenuItem = ({ label, icon, onPress, value, type, isLast }) => {
+  const getIconColor = () => {
+    if (label === "Change Password") return "#FFB200"
+    if (label === "Logout") return "red"
+    return COLORS.primary
+  }
+
+  const getIconBackgroundColor = () => {
+    if (label === "Change Password") return "#FFFBE6"
+    if (label === "Logout") return "#FFEBEB"
+    return "#EFF6FF"
+  }
+
+  const menuItemStyle = type === "button" ? [
+    styles.menuItem,
+    styles.buttonMenuItem
+  ] : styles.menuItem
+
+  return (
+    <>
+      <TouchableOpacity 
+        style={menuItemStyle} 
+        onPress={type === "button" ? onPress : undefined}
+      >
+        <View style={styles.menuItemLeft}>
+          <View style={[styles.iconContainer, { backgroundColor: getIconBackgroundColor() }]}>
+            <Icon name={icon} size={20} color={getIconColor()} />
+          </View>
+          <View>
+            <Text style={styles.menuItemText}>{label}</Text>
+            {type === "text" && value && <Text style={styles.menuItemValue}>{value}</Text>}
+          </View>
+        </View>
+      </TouchableOpacity>
+      {type === "text" && !isLast && <View style={styles.separator} />}
+    </>
+  )
+}
 
 export default function ProfileScreen() {
   const navigation = useNavigation()
   const [profilePic, setProfilePic] = useState(defaultProfile)
   const [userDetails, setUserDetails] = useState({
+    name: "",
     username: "",
     gender: "",
     dateOfBirth: "",
@@ -35,9 +104,10 @@ export default function ProfileScreen() {
         const userData = userDoc.data()
         setUserDetails((prevState) => ({
           ...prevState,
+          name: userData.name,
           username: userData.username,
-          gender: userData.gender,
-          dateOfBirth: userData.dateOfBirth.toDate().toISOString().split("T")[0],
+          gender: userData.gender.charAt(0).toUpperCase() + userData.gender.slice(1),
+          dateOfBirth: formatDate(userData.dateOfBirth.toDate(), false),
         }))
         setProfilePicBasedOnGender(userData.gender)
       }
@@ -60,10 +130,6 @@ export default function ProfileScreen() {
     }
   }
 
-  const handleChangePassword = () => {
-    navigation.navigate("ChangePassword")
-  }
-
   const handleLogout = async () => {
     try {
       await auth().signOut()
@@ -77,45 +143,55 @@ export default function ProfileScreen() {
     }
   }
 
+  const handleChangePassword = () => {
+    navigation.navigate("ChangePassword")
+  }
+
+  const renderTextItems = () => (
+    <View style={styles.menuItemContainer}>
+      <MenuItem label="Username" icon="at-outline" value={userDetails.username} type="text" />
+      <MenuItem label="Gender" icon="male-female-outline" value={userDetails.gender} type="text" />
+      <MenuItem label="Birthday" icon="calendar-outline" value={userDetails.dateOfBirth} type="text" />
+      <MenuItem label="Email" icon="mail-outline" value={userDetails.email} type="text" isLast />
+    </View>
+  )
+
+  const renderButtonItems = () => (
+    <>
+      <View style={styles.menuItemContainer}>
+        <MenuItem
+          label="Change Password"
+          icon="key-outline"
+          onPress={handleChangePassword}
+          type="button"
+        />
+      </View>
+      <View style={styles.menuItemContainer}>
+        <MenuItem
+          label="Logout"
+          icon="log-out-outline"
+          onPress={handleLogout}
+          type="button"
+        />
+      </View>
+    </>
+  )
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <StatusBar backgroundColor={COLORS.background.blue} barStyle="light-content" />
+
+      <ScrollView style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Profile</Text>
+          <View style={styles.profilePicWrapper}>
+            <Image source={profilePic} style={styles.profilePic} />
+          </View>
+          <Text style={styles.username}>{userDetails.name}</Text>
         </View>
 
-        <View style={styles.profilePicContainer}>
-          <Image source={profilePic} style={styles.profilePic} />
-        </View>
-
-        <View style={styles.detailsContainer}>
-          <View style={styles.usernameRow}>
-            {/* <Text style={styles.detailLabel}>Username:</Text> */}
-            <Text style={styles.usernameValue}>{userDetails.username}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Gender:</Text>
-            <Text style={styles.detailValue}>{userDetails.gender}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Date of Birth:</Text>
-            <Text style={styles.detailValue}>{userDetails.dateOfBirth}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Email:</Text>
-            <Text style={styles.detailValue}>{userDetails.email}</Text>
-          </View>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.button} onPress={handleChangePassword}>
-            <Icon name="key-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.buttonText}>Change Password</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.button, styles.logoutButton]} onPress={handleLogout}>
-            <Icon name="log-out-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.buttonText}>Logout</Text>
-          </TouchableOpacity>
+        <View style={styles.menuList}>
+          {renderTextItems()}
+          {renderButtonItems()}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -125,93 +201,89 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#F8FAFC",
   },
-  scrollContent: {
-    flexGrow: 1,
+  content: {
+    flex: 1,
   },
   header: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-  },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#196EB0",
-    textAlign: "center",
-  },
-  profilePicContainer: {
     alignItems: "center",
-    marginTop: 20,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    backgroundColor: COLORS.background.blue,
+  },
+  profilePicWrapper: {
+    backgroundColor: COLORS.white,
+    borderRadius: 50,
+    padding: 4,
+    borderWidth: 4,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    marginBottom: 16,
   },
   profilePic: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 10,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
   },
-  profilePicOptions: {
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  picOption: {
-    marginHorizontal: 10,
-  },
-  picOptionImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-  },
-  detailsContainer: {
-    padding: 20,
-  },
-  usernameRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 10,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  detailLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#196EB0",
-  },
-  usernameValue: {
+  username: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "black",
-    alignItems: "center",
+    fontWeight: "600",
+    color: COLORS.white,
+    marginBottom: 4,
   },
-  detailValue: {
-    fontSize: 16,
-    color: "#333",
+  email: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
   },
-  buttonContainer: {
-    padding: 20,
+  menuList: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    gap: 8,
   },
-  button: {
-    backgroundColor: "#196EB0",
+  menuItemContainer: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 10,
+    justifyContent: "space-between",
+    padding: 16,
   },
-  logoutButton: {
-    backgroundColor: "#FF6B6B",
+  buttonMenuItem: {
+    borderRadius: 12,
   },
-  buttonText: {
-    color: "#FFFFFF",
+  menuItemLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  iconContainer: {
+    backgroundColor: "#EFF6FF",
+    padding: 8,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  menuItemText: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginLeft: 10,
+    fontWeight: "500",
+    color: COLORS.text.primary,
+  },
+  menuItemValue: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 4,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: COLORS.border.light,
+    marginHorizontal: 16,
   },
 })
-
